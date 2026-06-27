@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Database, Info, HardDrive, Cpu, ExternalLink, HelpCircle
+  Database, Info, HardDrive, Cpu, HelpCircle
 } from 'lucide-react';
 import { Post } from './types';
 import { getPosts } from './lib/db';
@@ -14,12 +14,26 @@ import Header from './components/Header';
 import CreatePostModal from './components/CreatePostModal';
 import PostCard from './components/PostCard';
 import EmptyFeed from './components/EmptyFeed';
+import AuthScreen from './components/AuthScreen';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 
 export default function App() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Monitora o estado de autenticação do Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Carrega publicações do IndexedDB
   const loadPosts = async (showLoading = true) => {
@@ -35,6 +49,8 @@ export default function App() {
 
   // Carrega no mount e inicia sincronização em segundo plano
   useEffect(() => {
+    if (authLoading || !user) return;
+
     const initializeFeed = async () => {
       // 1. Carrega dados locais imediatamente (0ms de atraso)
       await loadPosts(true);
@@ -53,7 +69,15 @@ export default function App() {
     };
     
     initializeFeed();
-  }, []);
+  }, [authLoading, user]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Erro ao deslogar do Firebase', err);
+    }
+  };
 
   // Filtra publicações baseada na busca por título ou texto
   const filteredPosts = posts.filter(post => {
@@ -67,6 +91,19 @@ export default function App() {
     return titleMatch || textMatch || fileMatch;
   });
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center gap-4 text-stone-400">
+        <div className="w-8 h-8 rounded-full border-2 border-stone-850 border-t-stone-200 animate-spin" />
+        <span className="text-xs font-semibold font-mono tracking-wider">Verificando credenciais...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen onAuthSuccess={() => loadPosts(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] flex flex-col font-sans select-none text-stone-300 animate-fadeIn">
       
@@ -76,6 +113,8 @@ export default function App() {
         setSearchQuery={setSearchQuery}
         onOpenModal={() => setIsModalOpen(true)}
         totalPosts={posts.length}
+        user={user}
+        onLogout={handleLogout}
       />
 
       {/* Main Layout Grid */}

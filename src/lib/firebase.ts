@@ -1,19 +1,21 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
-// Configurações do Firebase obtidas do firebase-applet-config.json
+// Configurações do Firebase obtidas do snippet do usuário
 const firebaseConfig = {
-  apiKey: "AIzaSyCGDj7whsToZkJBJ-QTUW7Qy-ZPI3pW9z4",
-  authDomain: "googly-citadel-npnh2.firebaseapp.com",
-  projectId: "googly-citadel-npnh2",
-  storageBucket: "googly-citadel-npnh2.firebasestorage.app",
-  messagingSenderId: "766218403244",
-  appId: "1:766218403244:web:12f74f29415ceaccad4e09"
+  apiKey: "AIzaSyBirKLdI1Ap5z7QgCYzAQDKHMBR0ewoJmM",
+  authDomain: "neo-banc.firebaseapp.com",
+  projectId: "neo-banc",
+  storageBucket: "neo-banc.firebasestorage.app",
+  messagingSenderId: "1034604534159",
+  appId: "1:1034604534159:web:e41a3179a23c4011d113fa"
 };
 
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializa o Firestore usando o databaseId específico configurado no ambiente
-export const db = getFirestore(app, "ai-studio-feeddemdiaearqui-2e8fb27f-0031-41d8-ab09-25a86da149b6");
+// Inicializa o Firestore e Auth
+export const db = getFirestore(app);
+export const auth = getAuth(app);
 

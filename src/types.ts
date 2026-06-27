@@ -21,6 +21,9 @@ export interface Post {
   fileCount: number;
   totalSize: number;
   files: PostFileMetadata[];
+  userId?: string;
+  userEmail?: string;
+  userDisplayName?: string;
 }
 
 export interface PostFileBinary {

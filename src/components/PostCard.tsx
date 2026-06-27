@@ -174,7 +174,7 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
             <h4 className="font-display font-bold text-stone-100 text-sm md:text-base leading-snug truncate max-w-xs md:max-w-md">
               {post.title}
             </h4>
-            <div className="flex items-center gap-2 text-stone-500 text-xs mt-0.5 font-medium">
+            <div className="flex flex-wrap items-center gap-2 text-stone-500 text-xs mt-0.5 font-medium">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
                 {formatDate(post.createdAt)}
@@ -189,6 +189,14 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                 <span className="text-[10px] text-stone-400 bg-stone-900/55 border border-stone-850 px-1.5 py-0.5 rounded-md font-bold">
                   ARQUIVO ÚNICO
                 </span>
+              )}
+              {post.userEmail && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-[10px] text-stone-300 font-mono bg-stone-900 px-1.5 py-0.5 rounded-md border border-stone-800" title={`Publicado por ${post.userEmail}`}>
+                    Por {post.userDisplayName || post.userEmail.split('@')[0]}
+                  </span>
+                </>
               )}
             </div>
           </div>

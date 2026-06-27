@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Post, PostType } from '../types';
 import { savePost } from '../lib/db';
+import { auth } from '../lib/firebase';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -167,6 +168,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
       }));
 
       const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+      const currentUser = auth.currentUser;
 
       const newPost: Post = {
         id: postId,
@@ -177,7 +179,10 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
         createdAt: Date.now(),
         fileCount: files.length,
         totalSize: totalSize,
-        files: fileMetadata
+        files: fileMetadata,
+        userId: currentUser?.uid,
+        userEmail: currentUser?.email || undefined,
+        userDisplayName: currentUser?.displayName || undefined
       };
 
       setStatusText('Armazenando metadados...');
