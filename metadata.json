@@ -1,0 +1,6 @@
+{
+  "name": "Feed de Mídia e Arquivos",
+  "description": "Um feed interativo para publicação de fotos, vídeos, textos e áudios com suporte para múltiplos arquivos (pastas) e download rápido.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
