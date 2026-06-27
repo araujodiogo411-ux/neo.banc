@@ -4,6 +4,8 @@
  */
 
 import { Post, PostFileBinary } from '../types';
+import { db } from './firebase';
+import { doc, setDoc, deleteDoc, getDocs, collection } from 'firebase/firestore';
 
 const DB_NAME = 'MediaFeedDB';
 const DB_VERSION = 1;
@@ -40,16 +42,17 @@ export function initDB(): Promise<IDBDatabase> {
 }
 
 /**
- * Salva um post e seus arquivos binários associados no IndexedDB
+ * Salva um post e seus arquivos binários associados no IndexedDB e sincroniza com o Firestore
  */
 export async function savePost(post: Post, filesList: File[]): Promise<void> {
-  const db = await initDB();
+  const localDB = await initDB();
   
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_POSTS, STORE_FILES], 'readwrite');
+  // Primeiro, salvar tudo localmente no IndexedDB
+  await new Promise<void>((resolve, reject) => {
+    const transaction = localDB.transaction([STORE_POSTS, STORE_FILES], 'readwrite');
     
     transaction.onerror = () => {
-      console.error('Erro na transação de salvar post', transaction.error);
+      console.error('Erro na transação de salvar post local', transaction.error);
       reject(transaction.error);
     };
     
@@ -78,16 +81,23 @@ export async function savePost(post: Post, filesList: File[]): Promise<void> {
       filesStore.put(fileBinary);
     });
   });
+
+  // Segundo, tentar sincronizar os metadados do post para o Firestore
+  try {
+    await setDoc(doc(db, 'posts', post.id), post);
+    console.log('Post sincronizado com o Firestore:', post.id);
+  } catch (err) {
+    console.error('Erro ao sincronizar post com o Firestore (funcionará offline):', err);
+  }
 }
 
 /**
- * Recupera todos os posts cadastrados, ordenados por data decrescente
+ * Recupera todos os posts do banco de dados local IndexedDB de forma rápida
  */
-export async function getPosts(): Promise<Post[]> {
-  const db = await initDB();
-  
+export async function getLocalPosts(): Promise<Post[]> {
+  const dbInstance = await initDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_POSTS, 'readonly');
+    const transaction = dbInstance.transaction(STORE_POSTS, 'readonly');
     const store = transaction.objectStore(STORE_POSTS);
     const request = store.getAll();
     
@@ -102,6 +112,63 @@ export async function getPosts(): Promise<Post[]> {
       reject(request.error);
     };
   });
+}
+
+/**
+ * Tenta sincronizar as publicações do Firestore para o IndexedDB local.
+ * Retorna true se houver novas mídias ou mídias alteradas, forçando uma atualização silenciosa da UI.
+ */
+export async function syncFirestorePosts(): Promise<boolean> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'posts'));
+    const firebasePosts: Post[] = [];
+    querySnapshot.forEach((doc) => {
+      firebasePosts.push(doc.data() as Post);
+    });
+
+    if (firebasePosts.length > 0) {
+      const currentLocalPosts = await getLocalPosts();
+      const localIdSet = new Set(currentLocalPosts.map(p => p.id));
+      let hasChanges = false;
+
+      for (const fPost of firebasePosts) {
+        if (!localIdSet.has(fPost.id)) {
+          hasChanges = true;
+          break;
+        }
+        const localPost = currentLocalPosts.find(p => p.id === fPost.id);
+        if (localPost && localPost.createdAt !== fPost.createdAt) {
+          hasChanges = true;
+          break;
+        }
+      }
+
+      const localDB = await initDB();
+      // Usamos uma transação para salvar posts recebidos do Firestore no IndexedDB local
+      await new Promise<void>((resolve, reject) => {
+        const transaction = localDB.transaction(STORE_POSTS, 'readwrite');
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        
+        const store = transaction.objectStore(STORE_POSTS);
+        firebasePosts.forEach(post => {
+          store.put(post);
+        });
+      });
+
+      return hasChanges;
+    }
+  } catch (err) {
+    console.warn('Não foi possível sincronizar posts com o Firestore:', err);
+  }
+  return false;
+}
+
+/**
+ * Recupera todos os posts cadastrados (sincronizados localmente)
+ */
+export async function getPosts(): Promise<Post[]> {
+  return getLocalPosts();
 }
 
 /**
@@ -132,13 +199,14 @@ export async function getPostFile(postId: string, index: number): Promise<Blob |
 }
 
 /**
- * Deleta um post e todos os seus arquivos associados
+ * Deleta um post e todos os seus arquivos associados localmente e no Firestore
  */
 export async function deletePost(postId: string, fileCount: number): Promise<void> {
-  const db = await initDB();
+  const localDB = await initDB();
   
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([STORE_POSTS, STORE_FILES], 'readwrite');
+  // Primeiro, deletar localmente
+  await new Promise<void>((resolve, reject) => {
+    const transaction = localDB.transaction([STORE_POSTS, STORE_FILES], 'readwrite');
     
     transaction.onerror = () => {
       reject(transaction.error);
@@ -159,4 +227,12 @@ export async function deletePost(postId: string, fileCount: number): Promise<voi
       filesStore.delete(`${postId}_${i}`);
     }
   });
+
+  // Segundo, tentar deletar do Firestore
+  try {
+    await deleteDoc(doc(db, 'posts', postId));
+    console.log('Post deletado do Firestore:', postId);
+  } catch (err) {
+    console.error('Erro ao deletar post do Firestore:', err);
+  }
 }

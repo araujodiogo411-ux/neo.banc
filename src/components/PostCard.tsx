@@ -222,7 +222,10 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                 className="w-full h-full object-contain max-w-full max-h-full"
               />
             ) : (
-              <div className="text-center text-stone-600 text-xs font-mono">Erro ao carregar imagem</div>
+              <div className="text-center px-6 max-w-sm">
+                <p className="text-stone-400 text-xs font-semibold mb-1">Mídia Local Indisponível</p>
+                <p className="text-[10px] text-stone-500 leading-normal font-mono">Este post foi sincronizado do Firebase, mas o arquivo original está armazenado no navegador do autor.</p>
+              </div>
             )}
 
             {/* Gallery Navigation Controls */}
@@ -276,7 +279,10 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                   className="w-full h-full object-contain max-h-full"
                 />
               ) : (
-                <div className="text-center text-stone-600 text-xs font-mono">Clique na lista para reproduzir o vídeo</div>
+                <div className="text-center px-6 max-w-xs mx-auto">
+                  <p className="text-stone-400 text-xs font-semibold mb-1">Mídia Local Indisponível</p>
+                  <p className="text-[10px] text-stone-500 leading-normal font-mono">O arquivo de vídeo original reside no banco local IndexedDB do autor do post.</p>
+                </div>
               )}
             </div>
 
@@ -342,8 +348,9 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-center text-stone-600 text-xs font-mono">
-                  Selecione um arquivo para ler o PDF
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-6 max-w-xs mx-auto">
+                  <p className="text-stone-400 text-xs font-semibold mb-1">Documento Indisponível</p>
+                  <p className="text-[10px] text-stone-500 leading-normal font-mono">O PDF original reside no IndexedDB do autor do post.</p>
                 </div>
               )}
             </div>
@@ -429,8 +436,9 @@ export default function PostCard({ post, onPostDeleted }: PostCardProps) {
                   className="w-full h-10 mt-2 filter invert brightness-200"
                 />
               ) : (
-                <div className="text-center text-xs text-rose-400 font-mono py-2">
-                  Não foi possível ler o áudio
+                <div className="text-center py-2 max-w-xs mx-auto">
+                  <p className="text-rose-400 text-xs font-semibold mb-1">Áudio Local Indisponível</p>
+                  <p className="text-[10px] text-stone-500 leading-normal font-mono">O arquivo de som original reside no IndexedDB do autor do post.</p>
                 </div>
               )}
 

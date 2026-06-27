@@ -22,20 +22,37 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Carrega publicações do IndexedDB
-  const loadPosts = async () => {
-    setIsLoading(true);
+  const loadPosts = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const allPosts = await getPosts();
       setPosts(allPosts);
     } catch (err) {
       console.error('Erro ao carregar posts do IndexedDB', err);
     }
-    setIsLoading(false);
+    if (showLoading) setIsLoading(false);
   };
 
-  // Carrega no mount
+  // Carrega no mount e inicia sincronização em segundo plano
   useEffect(() => {
-    loadPosts();
+    const initializeFeed = async () => {
+      // 1. Carrega dados locais imediatamente (0ms de atraso)
+      await loadPosts(true);
+      
+      // 2. Sincroniza em segundo plano com o Firebase
+      try {
+        const { syncFirestorePosts } = await import('./lib/db');
+        const hasChanges = await syncFirestorePosts();
+        if (hasChanges) {
+          // Se houver mudanças, atualiza silenciosamente os posts do estado
+          await loadPosts(false);
+        }
+      } catch (err) {
+        console.warn('Sincronização em segundo plano indisponível:', err);
+      }
+    };
+    
+    initializeFeed();
   }, []);
 
   // Filtra publicações baseada na busca por título ou texto
